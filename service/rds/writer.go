@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -107,6 +108,10 @@ func (r *RDS) writeBackendCatalog(instance *config.DBInstance, logger *log.Entry
 	if !isSlave && !isMaster {
 		tags = append(tags, r.consulMasterTag)
 		tags = append(tags, r.consulReplicaTag)
+	}
+
+	for _, tag := range r.getServiceTags(instance) {
+		tags = append(tags, tag)
 	}
 
 	status := "passing"
@@ -231,6 +236,19 @@ func (r *RDS) getServiceName(instance *config.DBInstance) string {
 
 	log.Errorf("Failed to find service name for " + aws.StringValue(instance.DBInstanceArn))
 	return ""
+}
+
+func (r *RDS) getServiceTags(instance *config.DBInstance) []string {
+	tags := make([]string, 0)
+
+	// allow consul_service_tags from instance tags for custom tags
+	if customTags, ok := instance.Tags["consul_service_tags"]; ok {
+		for _, customTag := range strings.Fields(customTags) {
+			tags = append(tags, customTag)
+		}
+	}
+
+	return tags
 }
 
 func (r *RDS) identicalService(a, b *config.Service, logger *log.Entry) bool {
