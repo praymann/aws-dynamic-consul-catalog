@@ -1,6 +1,7 @@
 package rds
 
 import (
+	"github.com/spf13/cobra"
 	"strings"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/seatgeek/aws-dynamic-consul-catalog/config"
 	gelf "github.com/seatgeek/logrus-gelf-formatter"
 	log "github.com/sirupsen/logrus"
-	cli "gopkg.in/urfave/cli.v1"
 )
 
 // RDS ...
@@ -37,15 +37,15 @@ type RDS struct {
 	consulReplicaTag string
 }
 
-// New ...
-func New(c *cli.Context) *RDS {
-	logLevel, err := log.ParseLevel(strings.ToUpper(c.GlobalString("log-level")))
+func New(c *cobra.Command) *RDS {
+
+	logLevel, err := log.ParseLevel(strings.ToUpper(c.Flags().Lookup("log-level").Value.String()))
 	if err != nil {
-		log.Fatalf("%s (%s)", err, c.GlobalString("log-level"))
+		log.Fatalf("%s (%s)", err, c.Flags().Lookup("log-level").Value.String())
 	}
 	log.SetLevel(logLevel)
 
-	logFormat := strings.ToLower(c.GlobalString("log-format"))
+	logFormat := strings.ToLower(c.Flags().Lookup("log-format").Value.String())
 	switch logFormat {
 	case "json":
 		log.SetFormatter(new(gelf.GelfFormatter))
@@ -65,26 +65,30 @@ func New(c *cli.Context) *RDS {
 			},
 		})
 
+	tagCacheDuration, _ := c.Flags().GetDuration("rds-tag-cache-time")
+	checkInterval, _ := c.Flags().GetDuration("check-interval")
+	instanceFilters, _ := c.Flags().GetStringSlice("instance-filter")
+	tagFilters, _ := c.Flags().GetStringSlice("tag-filter")
+
 	return &RDS{
 		rds: rds.New(session.Must(session.NewSession(&aws.Config{
 			Credentials: creds,
 		}))),
 		backend:          cc.NewBackend(),
-		instanceFilters:  config.ProcessFilters(c.GlobalStringSlice("instance-filter")),
-		tagFilters:       config.ProcessFilters(c.GlobalStringSlice("tag-filter")),
-		tagCache:         cache.New(c.Duration("rds-tag-cache-time"), 10*time.Minute),
-		checkInterval:    c.GlobalDuration("check-interval"),
+		instanceFilters:  config.ProcessFilters(instanceFilters),
+		tagFilters:       config.ProcessFilters(tagFilters),
+		tagCache:         cache.New(tagCacheDuration, 30*time.Minute),
+		checkInterval:    checkInterval,
 		quitCh:           make(chan int),
-		onDuplicate:      c.GlobalString("on-duplicate"),
-		servicePrefix:    c.GlobalString("consul-service-prefix"),
-		serviceSuffix:    c.GlobalString("consul-service-suffix"),
-		consulNodeName:   c.String("consul-node-name"),
-		consulMasterTag:  c.String("consul-master-tag"),
-		consulReplicaTag: c.String("consul-replica-tag"),
+		onDuplicate:      c.Flags().Lookup("on-duplicate").Value.String(),
+		servicePrefix:    c.Flags().Lookup("consul-service-prefix").Value.String(),
+		serviceSuffix:    c.Flags().Lookup("consul-service-suffix").Value.String(),
+		consulNodeName:   c.Flags().Lookup("consul-node-name").Value.String(),
+		consulMasterTag:  c.Flags().Lookup("consul-master-tag").Value.String(),
+		consulReplicaTag: c.Flags().Lookup("consul-replica-tag").Value.String(),
 	}
 }
 
-// Run ...
 func (r *RDS) Run() {
 	log.Info("Starting RDS app")
 
