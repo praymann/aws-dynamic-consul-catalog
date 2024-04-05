@@ -84,8 +84,8 @@ func New(c *cobra.Command) *RDS {
 		servicePrefix:    c.Flags().Lookup("consul-service-prefix").Value.String(),
 		serviceSuffix:    c.Flags().Lookup("consul-service-suffix").Value.String(),
 		consulNodeName:   c.Flags().Lookup("consul-node-name").Value.String(),
-		consulMasterTag:  c.Flags().Lookup("consul-master-tag").Value.String(),
-		consulReplicaTag: c.Flags().Lookup("consul-replica-tag").Value.String(),
+		consulMasterTag:  c.Flags().Lookup("consul-leader-tag").Value.String(),
+		consulReplicaTag: c.Flags().Lookup("consul-follower-tag").Value.String(),
 	}
 }
 
