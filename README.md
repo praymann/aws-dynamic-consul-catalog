@@ -25,11 +25,15 @@ See [Docker Hub - seatgeek/aws-dynamic-consul-catalog](https://hub.docker.com/r/
 
 Will every `check-interval` check AWS RDS for changes in the topologies and instances and update the Consul service catalog accordingly
 
+The AWS Tags `consul_service_name` and `consul_service_tags` on the RDS instances will be used to influence the Consul service name and additional tags. When the `consul_service_name` tag is found, it will override all other naming but still include the prefix and suffix.
+
+The `consul_service_tags` AWS Tag should be a whitespace separated set of tags that will be added to the Consul service registration. AWS only allows `. : + = @ _ / -` characters outside of letters, numbers, and spaces.
+
 #### RDS : Config
 
 - [optional] `--consul-node-name=rds` / `CONSUL_NODE_NAME` Name the Consul catalog node that all checks will belong to
-- [optional] `--consul-master-tag=master` / `CONSUL_MASTER_TAG` The Consul Service tag to use for RDS master instances
-- [optional] `--consul-replica-tag=replica` / `CONSUL_REPLICA_TAG` The Consul service tag to use for RDS replica instances
+- [optional] `--consul-leader-tag=leader` / `CONSUL_MASTER_TAG` The Consul Service tag to use for RDS master instances
+- [optional] `--consul-follower-tag=follower` / `CONSUL_REPLICA_TAG` The Consul service tag to use for RDS replica instances
 - [optional] `--rds-tag-cache-time=30m` / `RDS_TAG_CACHE_TIME` The time RDS tags should be cached (examples: `30s, 1h, 1h10m, 1d`)
 
 #### RDS : Instance Filters
